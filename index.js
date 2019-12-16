@@ -48,6 +48,21 @@ app.post('/addproduct',(req,res)=>{
 	res.end();
 });
 
+// 删除产品
+app.get('/product/delete/:productid',(req,res)=>{
+	let pid = req.params.productid;
+	if(pid){
+		Product.Product.deleteOne({_id:pid},(err)=>{
+			if(err) throw err;
+			
+			res.send({
+				status: 1,
+				msg: '删除成功!'
+			});
+		});
+	}
+})
+
 // 获取订单列表
 app.get('/orderlist',(req,res)=>{
 	
