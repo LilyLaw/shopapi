@@ -33,19 +33,37 @@ app.get('/productlist',(req,res)=>{
 	})
 });
 
+// 获取某一个产品
+app.get('/product/:productid',(req,res)=>{
+	let pid = req.params.productid;
+	Product.Product.find({_id:pid},(err,docs)=>{
+		if(err) throw err;
+		res.send(docs);
+	})
+})
+
 // 添加产品
 app.post('/addproduct',(req,res)=>{
-	let newProduct = new Product.Product({
-		product_name: req.body.pname,
-		product_price: req.body.pprice,
-		product_status: req.body.status,
-		product_description: req.body.pdes
-	});
-	
-	newProduct.save(function(err){
-		if(err) throw err;
-	});
-	res.end();
+	let pdata = {
+			product_name: req.body.pname,
+			product_price: req.body.pprice,
+			product_status: req.body.status,
+			product_description: req.body.pdes
+		};
+	if(req.body.pid !== 0){	// 修改
+		Product.Product.updateOne({_id:req.body.pid},pdata,(err)=>{
+			if(err) throw err;
+			
+			res.end();
+		});
+	}else{	// 新增
+		let newProduct = new Product.Product(pdata);
+		newProduct.save(function(err){
+			if(err) throw err;
+			
+			res.end();
+		});
+	}
 });
 
 // 删除产品
@@ -61,7 +79,7 @@ app.get('/product/delete/:productid',(req,res)=>{
 			});
 		});
 	}
-})
+});
 
 // 获取订单列表
 app.get('/orderlist',(req,res)=>{
