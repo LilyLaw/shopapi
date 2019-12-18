@@ -88,7 +88,10 @@ app.get('/product/delete/:productid',(req,res)=>{
 
 // 搜索产品: 产品名称
 app.post('/product/search',(req,res)=>{
-	Product.Product.find({product_name:req.body.searchkeywords},(err,docs)=>{
+	let query = {};
+	query['product_name'] = new RegExp(req.body.searchkeywords);	// 模糊查询,构建query
+	
+	Product.Product.find(query,(err,docs)=>{
 		if(err) throw err;
 		console.log(docs);
 		res.json(docs);
