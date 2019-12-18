@@ -38,30 +38,35 @@ app.get('/product/:productid',(req,res)=>{
 	let pid = req.params.productid;
 	Product.Product.find({_id:pid},(err,docs)=>{
 		if(err) throw err;
-		res.send(docs);
+		res.json(docs);
 	})
 })
 
-// 添加产品
+// 添加产品或修改产品
 app.post('/addproduct',(req,res)=>{
 	let pdata = {
-			product_name: req.body.pname,
-			product_price: req.body.pprice,
-			product_status: req.body.status,
-			product_description: req.body.pdes
-		};
-	if(req.body.pid !== 0){	// 修改
-		Product.Product.updateOne({_id:req.body.pid},pdata,(err)=>{
+		product_name: req.body.product_name,
+		product_price: req.body.product_price,
+		product_status: req.body.product_status,
+		product_description: req.body.product_description,
+	};
+	if(req.body._id !== 0 && req.body._id !== '0'){	// 修改
+		let tmpid = mongoose.Types.ObjectId(req.body._id);
+		Product.Product.updateOne({_id:tmpid},pdata,(err,docs)=>{
 			if(err) throw err;
-			
-			res.end();
+			res.json({
+				status: 1,
+				msg: '修改成功'
+			})
 		});
 	}else{	// 新增
 		let newProduct = new Product.Product(pdata);
-		newProduct.save(function(err){
+		newProduct.save(function(err,docs){
 			if(err) throw err;
-			
-			res.end();
+			res.json({
+				status: 1,
+				msg: '保存成功'
+			})
 		});
 	}
 });
@@ -79,6 +84,15 @@ app.get('/product/delete/:productid',(req,res)=>{
 			});
 		});
 	}
+});
+
+// 搜索产品: 产品名称
+app.post('/product/search',(req,res)=>{
+	Product.Product.find({product_name:req.body.searchkeywords},(err,docs)=>{
+		if(err) throw err;
+		console.log(docs);
+		res.json(docs);
+	})
 });
 
 // 获取订单列表
