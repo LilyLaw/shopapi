@@ -1,6 +1,8 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
+const multer  = require('multer')
+const upload = multer({ dest: 'uploads/' })
 let Product = require('./database/product.js');
 
 // 连接mongoDB 数据库
@@ -43,33 +45,39 @@ app.get('/product/:productid',(req,res)=>{
 })
 
 // 添加产品或修改产品
-app.post('/addproduct',(req,res)=>{
-	let pdata = {
-		product_name: req.body.product_name,
-		product_price: req.body.product_price,
-		product_status: req.body.product_status,
-		product_description: req.body.product_description,
-	};
-	if(req.body._id !== 0 && req.body._id !== '0'){	// 修改
-		let tmpid = mongoose.Types.ObjectId(req.body._id);
-		Product.Product.updateOne({_id:tmpid},pdata,(err,docs)=>{
-			if(err) throw err;
-			res.json({
-				status: 1,
-				msg: '修改成功'
-			})
-		});
-	}else{	// 新增
-		let newProduct = new Product.Product(pdata);
-		newProduct.save(function(err,docs){
-			if(err) throw err;
-			res.json({
-				status: 1,
-				msg: '保存成功'
-			})
-		});
-	}
-});
+app.post('/addproduct', upload.array('product_images', 12), function (req, res, next) {
+  // req.files 是 `product_images` 文件数组的信息
+  // req.body 将具有文本域数据，如果存在的话
+	console.log(req.files);
+	console.log(req.body);
+	
+	// let pdata = {
+	// 	product_name: req.body.product_name,
+	// 	product_price: req.body.product_price,
+	// 	product_status: req.body.product_status,
+	// 	product_description: req.body.product_description,
+	// };
+	// console.log(req);
+	// if(req.body._id !== 0 && req.body._id !== '0'){	// 修改
+	// 	let tmpid = mongoose.Types.ObjectId(req.body._id);
+	// 	Product.Product.updateOne({_id:tmpid},pdata,(err,docs)=>{
+	// 		if(err) throw err;
+	// 		res.json({
+	// 			status: 1,
+	// 			msg: '修改成功'
+	// 		})
+	// 	});
+	// }else{	// 新增
+	// 	let newProduct = new Product.Product(pdata);
+	// 	newProduct.save(function(err,docs){
+	// 		if(err) throw err;
+	// 		res.json({
+	// 			status: 1,
+	// 			msg: '保存成功'
+	// 		})
+	// 	});
+	// }
+})
 
 // 删除产品
 app.get('/product/delete/:productid',(req,res)=>{
