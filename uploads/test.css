@@ -1,0 +1,15 @@
+------WebKitFormBoundaryTozCaK6hq7u1A52b
+Content-Disposition: form-data; name="file"; filename="test.css"
+Content-Type: text/css
+
+#tab-description img {
+    width: 100%;
+    height: auto;
+    max-width: 600px;
+}
+
+------WebKitFormBoundaryTozCaK6hq7u1A52b
+Content-Disposition: form-data; name="age"
+
+3333
+------WebKitFormBoundaryTozCaK6hq7u1A52b--

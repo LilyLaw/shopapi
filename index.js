@@ -3,6 +3,9 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const multer  = require('multer')
 const upload = multer({ dest: 'uploads/' })
+const fs = require('fs'); 
+const fileStream = (fileName) => fs.createWriteStream(`uploads/${fileName}`);
+
 let Product = require('./database/product.js');
 
 // 连接mongoDB 数据库
@@ -114,6 +117,25 @@ app.get('/orderlist',(req,res)=>{
 // 监听端口
 app.listen(apiPort,(err)=>{
 	if(err) throw err;
-	
 	console.log(`api listening on port [  ${apiPort} ]`);
-})
+});
+
+
+
+// app.post('/testgetfile',(req,res)=>{
+// 	const arr = [];
+	
+// 	req.on('data', buffer=>{
+// 		arr.push(buffer);
+// 	});
+	
+// 	req.on('end',()=>{
+// 		const buffer = Buffer.concat(arr);
+// 		const content = buffer.toString();
+// 		const fileName = content.match(/(?<=filename=").*?(?=")/)[0];
+// 		fileStream(fileName).write(buffer);
+		
+// 		res.writeHead(200,{'Content-Type': 'text/html; charset=utf-8'});
+// 		res.end('上传完成');
+// 	})
+// });
