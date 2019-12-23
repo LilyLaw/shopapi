@@ -3,16 +3,13 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 let Product = require('./database/product.js');
 let Productimg = require('./database/productimg.js');
+const path = require('path');
 
 // 文件上传相关
 const multer  = require('multer')
 var storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads')
-  },
-  filename: function (req, file, cb) {
-    cb(null, file.originalname);
-  }
+  destination: function (req, file, cb) { cb(null, 'uploads'); },
+  filename: function (req, file, cb) { cb(null, file.originalname); }
 });
 var upload = multer({ storage: storage });
 
@@ -38,6 +35,9 @@ app.all('*', function(req, res, next) {
 // 处理http解析
 app.use(bodyParser.urlencoded({ extended: false }));
 
+// 访问静态资源
+app.use('/static',express.static(path.join(__dirname,'uploads')));
+
 // 获取产品列表
 app.get('/productlist',(req,res)=>{
 	Product.Product.find({},function(err,docs){
@@ -49,16 +49,30 @@ app.get('/productlist',(req,res)=>{
 // 获取某一个产品
 app.get('/product/:productid',(req,res)=>{
 	let pid = req.params.productid;
-	Product.Product.find({_id:pid},(err,docs)=>{
-		if(err) throw err;
-		res.json(docs);
+	new Promise((resolve,reject)=>{
+		Product.Product.find({_id:pid},(err,docs)=>{
+			if(err) reject(err);
+			resolve(docs[0]);
+		});
+	}).then((doc)=>{
+		Productimg.Productimg.find({product_id:pid},(err,docs)=>{
+			let a = {};
+			a.product_images = docs;
+			a._id = doc._id;
+			a.product_price = doc.product_price;
+			a.product_name = doc.product_name;
+			a.product_status = doc.product_status;
+			a.product_description = doc.product_description;
+			res.send(a);
+		});
+	}).catch((err)=>{
+		throw err;
 	})
-})
+});
 
 // 添加产品或修改产品
 app.post('/addproduct', upload.array('product_images', 12), function (req, res, next) {
-	console.log(req.files); // req.files 是 `product_images` 文件数组的信息
-	console.log(req.body); // req.body 将具有文本域数据，如果存在的话
+	// req.files 是 `product_images` 文件数组的信息; req.body 将具有文本域数据，如果存在的话
 	let pdata = {
 		product_name: req.body.product_name,
 		product_price: req.body.product_price,
@@ -83,8 +97,9 @@ app.post('/addproduct', upload.array('product_images', 12), function (req, res, 
 		}
 	});
 	
-	save.then((id,transmsg)=>{
+	saveProduct.then((id,transmsg)=>{
 		saveFiles(id,req.files);
+		res.json(transmsg);
 	}).catch((err)=>{
 		throw err;
 	});
@@ -94,12 +109,11 @@ function saveFiles(id,files){
 	files.map((item)=>{
 		let pimgdata = {
 			product_id: id,
-			product_imgurl: `${item.destination}/${item.originalname}`,
+			product_imgurl: `static/${item.originalname}`,
 		}
 		let newProductimg = new Productimg.Productimg(pimgdata);
 		newProductimg.save(function(err,docs){
 			if(err) throw err;
-			console.log(docs);
 		});
 	});
 }
@@ -126,7 +140,6 @@ app.post('/product/search',(req,res)=>{
 	
 	Product.Product.find(query,(err,docs)=>{
 		if(err) throw err;
-		console.log(docs);
 		res.json(docs);
 	})
 });
@@ -141,23 +154,3 @@ app.listen(apiPort,(err)=>{
 	if(err) throw err;
 	console.log(`api listening on port [  ${apiPort} ]`);
 });
-
-
-
-// app.post('/testgetfile',(req,res)=>{
-// 	const arr = [];
-	
-// 	req.on('data', buffer=>{
-// 		arr.push(buffer);
-// 	});
-	
-// 	req.on('end',()=>{
-// 		const buffer = Buffer.concat(arr);
-// 		const content = buffer.toString();
-// 		const fileName = content.match(/(?<=filename=").*?(?=")/)[0];
-// 		fileStream(fileName).write(buffer);
-		
-// 		res.writeHead(200,{'Content-Type': 'text/html; charset=utf-8'});
-// 		res.end('上传完成');
-// 	})
-// });
