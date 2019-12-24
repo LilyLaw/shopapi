@@ -1,9 +1,9 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
+const path = require('path');
 let Product = require('./database/product.js');
 let Productimg = require('./database/productimg.js');
-const path = require('path');
 
 // 文件上传相关
 const multer  = require('multer')
@@ -73,6 +73,7 @@ app.get('/product/:productid',(req,res)=>{
 // 添加产品或修改产品
 app.post('/addproduct', upload.array('product_images', 12), function (req, res, next) {
 	// req.files 是 `product_images` 文件数组的信息; req.body 将具有文本域数据，如果存在的话
+	// console.log(req.files,req.body);
 	let pdata = {
 		product_name: req.body.product_name,
 		product_price: req.body.product_price,
@@ -80,42 +81,88 @@ app.post('/addproduct', upload.array('product_images', 12), function (req, res, 
 		product_description: req.body.product_description
 	};
 	
-	let saveProduct = new Promise((resolve,reject)=>{
+	new Promise((resolve,reject)=>{
 		if(req.body._id !== 0 && req.body._id !== '0'){	// 修改
 			let tmpid = mongoose.Types.ObjectId(req.body._id);
-			idOfImgs = tmpid;
 			Product.Product.updateOne({_id:tmpid},pdata,(err,docs)=>{
-				if(err) reject(err);
-				resolve(tmpid,{ status: 1, msg: '修改成功' })
+				if(err){reject(err);}
+				else{resolve({id:tmpid,type:'change'});}
 			});
 		}else{	// 新增
 			let newProduct = new Product.Product(pdata);
 			newProduct.save(function(err,docs){
-				if(err) reject(err);
-				resolve(docs._id,{ status: 1, msg: '保存成功' });
+				if(err){reject(err);}
+				else{resolve({id:docs._id,type:'new'});}
 			});
 		}
-	});
-	
-	saveProduct.then((id,transmsg)=>{
-		saveFiles(id,req.files);
-		res.json(transmsg);
+	}).then((transobj)=>{
+		saveFiles({
+			pid: transobj.id,
+			type: transobj.type,
+			filesUpload: req.files,
+			fileUrl: req.body.product_images || []
+		})
+		if(transobj.type === 'new'){
+			res.json({status:1,msg:'添加成功'});
+		}else if(transobj.type === 'change'){
+			res.json({status:1,msg:'修改成功'});
+		}
 	}).catch((err)=>{
 		throw err;
 	});
 });
 
-function saveFiles(id,files){
-	files.map((item)=>{
-		let pimgdata = {
-			product_id: id,
-			product_imgurl: `static/${item.originalname}`,
-		}
-		let newProductimg = new Productimg.Productimg(pimgdata);
-		newProductimg.save(function(err,docs){
-			if(err) throw err;
+function saveFiles(obj){
+	if(obj.type==='change'){ // 修改
+		new Promise((resolve,reject)=>{ // 先获取所有产品图片,进行一一比对
+			Productimg.Productimg.find({product_id:obj.pid},(err,docs)=>{
+				if(err) { reject(err); }
+				else if(docs.length > 0){ resolve(docs); }
+				else{ reject(err); }
+			});
+		}).then((docs)=>{
+			console.log('------------------------------------------------------');
+			console.log(docs,obj);
+			if(obj.fileUrl.length>0){
+				if(typeof obj.fileUrl === 'string'){ //说明只有一个元素
+					docs.map((item,i)=>{
+						if(mongoose.Types.ObjectId(item._id) !== mongoose.Types.ObjectId(obj.fileUrl)){
+							Productimg.Productimg.deleteOne({_id:item._id},(err)=>{ if(err) throw err; });
+						}
+					});
+				}else if(typeof obj.fileUrl === 'object'){	// 说明有多个元素,是一个数组
+					docs.map((item,i)=>{
+						let flag = true;
+						obj.fileUrl.map((_item)=>{
+							if(mongoose.Types.ObjectId(item._id) === mongoose.Types.ObjectId(_item)){
+								flag = false;
+							}
+						});
+						if(flag){	// 没有匹配到,说明被删掉了,那就把这条数据删掉.
+							Productimg.Productimg.deleteOne({_id:item._id},(err)=>{ if(err) throw err; });
+						}
+					});
+				}
+			}else{
+				// 全部删光
+				docs.map((item)=>{
+					Productimg.Productimg.deleteOne({_id:item._id},(err)=>{ if(err) throw err; });
+				});
+			}
+		}).catch((err)=>{ console.log(err); console.log('该产品原先没有图片'); });
+	}
+	if(obj.filesUpload.length>0){
+		obj.filesUpload.map((item)=>{
+			let pimgdata = {
+				product_id: obj.pid,
+				product_imgurl: `static/${item.originalname}`
+			}
+			let newProductimg = new Productimg.Productimg(pimgdata);
+			newProductimg.save(function(err,docs){
+				if(err) throw err;
+			});
 		});
-	});
+	}
 }
 
 // 删除产品
