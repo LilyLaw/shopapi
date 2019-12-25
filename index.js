@@ -4,7 +4,6 @@ const bodyParser = require('body-parser');
 const path = require('path');
 let Product = require('./database/product.js');
 let Productimg = require('./database/productimg.js');
-
 // 文件上传相关
 const multer  = require('multer')
 var storage = multer.diskStorage({
@@ -39,11 +38,22 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use('/static',express.static(path.join(__dirname,'uploads')));
 
 // 获取产品列表
-app.get('/productlist',(req,res)=>{
-	Product.Product.find({},function(err,docs){
-		if(err) throw err;
-		res.send(docs);
-	})
+app.post('/productlist',(req,res)=>{
+	new Promise((resolve,reject)=>{
+		Product.Product.countDocuments({},(err,docs)=>{ // 1. 获取总数目
+			if(err) reject(err);
+			resolve(docs);
+		});
+	}).then(count => {
+		let cpage = parseInt(req.body.currentpage),psize = parseInt(req.body.pagesize);
+		Product.Product.find({}).skip((cpage-1) * psize).limit(psize).exec((err,docs)=>{ // 2. 获取应渲染的那几个
+			if(err) throw err;
+			res.send({
+				allcount: count,
+				products: docs
+			});
+		});
+	}).catch( err => { throw err });
 });
 
 // 获取某一个产品
