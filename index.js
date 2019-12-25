@@ -121,20 +121,18 @@ function saveFiles(obj){
 				else{ reject(err); }
 			});
 		}).then((docs)=>{
-			console.log('------------------------------------------------------');
-			console.log(docs,obj);
 			if(obj.fileUrl.length>0){
 				if(typeof obj.fileUrl === 'string'){ //说明只有一个元素
 					docs.map((item,i)=>{
-						if(mongoose.Types.ObjectId(item._id) !== mongoose.Types.ObjectId(obj.fileUrl)){
+						if(item._id.toString() !== obj.fileUrl.toString()){
 							Productimg.Productimg.deleteOne({_id:item._id},(err)=>{ if(err) throw err; });
 						}
 					});
 				}else if(typeof obj.fileUrl === 'object'){	// 说明有多个元素,是一个数组
-					docs.map((item,i)=>{
+					docs.map((item)=>{
 						let flag = true;
 						obj.fileUrl.map((_item)=>{
-							if(mongoose.Types.ObjectId(item._id) === mongoose.Types.ObjectId(_item)){
+							if(item._id.toString() === _item.toString()){
 								flag = false;
 							}
 						});
@@ -143,13 +141,12 @@ function saveFiles(obj){
 						}
 					});
 				}
-			}else{
-				// 全部删光
+			}else{ // 全部删光
 				docs.map((item)=>{
 					Productimg.Productimg.deleteOne({_id:item._id},(err)=>{ if(err) throw err; });
 				});
 			}
-		}).catch((err)=>{ console.log(err); console.log('该产品原先没有图片'); });
+		}).catch((err)=>{ if(err){console.log(err);}console.log('该产品原先没有图片'); });
 	}
 	if(obj.filesUpload.length>0){
 		obj.filesUpload.map((item)=>{
