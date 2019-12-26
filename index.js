@@ -83,7 +83,6 @@ app.get('/product/:productid',(req,res)=>{
 // 添加产品或修改产品
 app.post('/addproduct', upload.array('product_images', 12), function (req, res, next) {
 	// req.files 是 `product_images` 文件数组的信息; req.body 将具有文本域数据，如果存在的话
-	// console.log(req.files,req.body);
 	let pdata = {
 		product_name: req.body.product_name,
 		product_price: req.body.product_price,
@@ -112,14 +111,9 @@ app.post('/addproduct', upload.array('product_images', 12), function (req, res, 
 			filesUpload: req.files,
 			fileUrl: req.body.product_images || []
 		})
-		if(transobj.type === 'new'){
-			res.json({status:1,msg:'添加成功'});
-		}else if(transobj.type === 'change'){
-			res.json({status:1,msg:'修改成功'});
-		}
-	}).catch((err)=>{
-		throw err;
-	});
+		if(transobj.type === 'new'){ res.json({status:1,msg:'添加成功'}); }
+		else if(transobj.type === 'change'){ res.json({status:1,msg:'修改成功'}); }
+	}).catch((err)=>{ throw err; });
 });
 
 function saveFiles(obj){
@@ -173,19 +167,22 @@ function saveFiles(obj){
 }
 
 // 删除产品
-app.get('/product/delete/:productid',(req,res)=>{
-	let pid = req.params.productid;
-	if(pid){
-		Product.Product.deleteOne({_id:pid},(err)=>{
+app.post('/product/delete',(req,res)=>{
+	let pids = req.body.pids;
+	if(typeof pids === 'string'){
+		Product.Product.deleteOne({_id:pids},(err)=>{
 			if(err) throw err;
+		});
+	}else if(typeof pids === 'object'){
+		pids.map((item)=>{	// deletemany
 			
-			res.send({
-				status: 1,
-				msg: '删除成功!'
-			});
 		});
 	}
-});
+	// res.send({
+	// 	status: 1,
+	// 	msg: '删除成功!'
+	// });
+})
 
 // 搜索产品: 产品名称
 app.post('/product/search',(req,res)=>{
