@@ -11,16 +11,12 @@ var storage = multer.diskStorage({
   filename: function (req, file, cb) { cb(null, file.originalname); }
 });
 var upload = multer({ storage: storage });
-
 // 连接mongoDB 数据库
 mongoose.connect('mongodb://localhost/shop',{useNewUrlParser: true,useUnifiedTopology: true});
-
 // 监听端口
 const apiPort = 3001;
-
 // 实例化一个服务
 let app = new express();
-
 // 允许跨域
 app.all('*', function(req, res, next) {
    res.header("Access-Control-Allow-Origin", "*");
@@ -30,23 +26,25 @@ app.all('*', function(req, res, next) {
    res.header("Content-Type", "application/json;charset=utf-8");
    next();
 });
-
 // 处理http解析
 app.use(bodyParser.urlencoded({ extended: false }));
-
 // 访问静态资源
 app.use('/static',express.static(path.join(__dirname,'uploads')));
 
 // 获取产品列表
 app.post('/productlist',(req,res)=>{
+	let queryp = {};
+	if(req.body.searchkeywords){
+		queryp['product_name'] = new RegExp(req.body.searchkeywords);	// 模糊查询,构建query
+	}
 	new Promise((resolve,reject)=>{
-		Product.Product.countDocuments({},(err,docs)=>{ // 1. 获取总数目
+		Product.Product.countDocuments(queryp,(err,docs)=>{ // 1. 获取总数目
 			if(err) reject(err);
 			resolve(docs);
 		});
 	}).then(count => {
 		let cpage = parseInt(req.body.currentpage),psize = parseInt(req.body.pagesize);
-		Product.Product.find({}).skip((cpage-1) * psize).limit(psize).exec((err,docs)=>{ // 2. 获取应渲染的那几个
+		Product.Product.find(queryp).skip((cpage-1) * psize).limit(psize).exec((err,docs)=>{ // 2. 获取应渲染的那几个
 			if(err) throw err;
 			res.send({
 				allcount: count,
@@ -169,30 +167,51 @@ function saveFiles(obj){
 // 删除产品
 app.post('/product/delete',(req,res)=>{
 	let pids = req.body.pids;
-	if(typeof pids === 'string'){
-		Product.Product.deleteOne({_id:pids},(err)=>{
+	new Promise((resolve,reject)=>{	// 先删除产品,
+		if(typeof pids === 'string'){
+			Product.Product.deleteOne({_id:pids},(err)=>{
+				if(err) reject(err);
+				resolve(pids);
+			});
+		}else if(typeof pids === 'object'){
+			Product.Product.deleteMany({_id:{$in:pids}},(err)=>{
+				if(err) reject(err);
+				resolve(pids);
+			});
+		}
+	}).then((pids)=>{ // 再删除图片
+		let condition;
+		if(typeof pids === 'string') condition = {product_id:pids};
+		else if(typeof pids === 'object') condition = {product_id:{$in:pids}};
+		Productimg.Productimg.deleteMany(condition,(err,docs)=>{
 			if(err) throw err;
 		});
-	}else if(typeof pids === 'object'){
-		pids.map((item)=>{	// deletemany
-			
+	}).then((docs)=>{
+		res.send({
+			status: 1,
+			msg: '删除成功!'
 		});
-	}
-	// res.send({
-	// 	status: 1,
-	// 	msg: '删除成功!'
-	// });
-})
+	}).catch((err)=>{ throw err; });
+});
 
 // 搜索产品: 产品名称
 app.post('/product/search',(req,res)=>{
 	let query = {};
 	query['product_name'] = new RegExp(req.body.searchkeywords);	// 模糊查询,构建query
-	
-	Product.Product.find(query,(err,docs)=>{
-		if(err) throw err;
-		res.json(docs);
-	})
+	new Promise((resolve,reject)=>{
+		Product.Product.countDocuments(query,(err,docs)=>{ // 1. 获取总数目
+			if(err) reject(err);
+			resolve(docs);
+		});
+	}).then((count)=>{
+		Product.Product.find(query).limit(parseInt(req.body.pagesize)).exec((err,docs)=>{
+			if(err) throw err;
+			res.json({
+				count: count,
+				products: docs
+			});
+		});
+	}).catch(err=>{ throw err; })
 });
 
 // 获取订单列表
