@@ -9,8 +9,4 @@ let productSchema = new mongoose.Schema({
 
 let Product = mongoose.model('Product',productSchema);
 
-module.exports = {
-	Product
-}
-
-// export default Product;
+module.exports = Product;

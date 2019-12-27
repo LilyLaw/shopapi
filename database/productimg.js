@@ -7,6 +7,4 @@ let productImgSchema = new mongoose.Schema({
 
 let Productimg = mongoose.model('Productimg',productImgSchema);
 
-module.exports = {
-	Productimg
-}
+module.exports = Productimg;
