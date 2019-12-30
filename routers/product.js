@@ -1,4 +1,5 @@
 const express = require('express');
+const url = require('url');
 const mongoose = require('mongoose');
 let router = express.Router();
 let Product = require('../database/product.js');
@@ -10,6 +11,9 @@ var storage = multer.diskStorage({
   filename: function (req, file, cb) { cb(null, file.originalname); }
 });
 var upload = multer({ storage: storage });
+
+var upload_image = require("../toolfunctions/upload.js");
+
 // 获取产品列表
 router.post('/productlist',(req,res)=>{
 	let queryp = {};
@@ -55,32 +59,48 @@ router.get('/product/:productid',(req,res)=>{
 
 // 添加产品或修改产品
 router.post('/addproduct', upload.array('product_images', 12), function (req, res, next) {
+	console.log(req.files);
+	console.log(req.body);
 	// req.files 是 `product_images` 文件数组的信息; req.body 将具有文本域数据，如果存在的话
-	let pdata = JSON.parse(JSON.stringify(req.body));
-	delete pdata._id;
-	new Promise((resolve,reject)=>{
-		if(req.body._id !== 0 && req.body._id !== '0'){	// 修改
-			Product.updateOne({_id: mongoose.Types.ObjectId(req.body._id)},pdata,(err,docs)=>{
-				if(err){reject(err);}
-				else{resolve({id:req.body._id,type:'change'});}
-			});
-		}else{	// 新增
-			let newProduct = new Product(pdata);
-			newProduct.save(function(err,docs){
-				if(err){reject(err);}
-				else{resolve({id:docs._id,type:'new'});}
-			});
-		}
-	}).then((transobj)=>{
-		saveFiles({
-			pid: transobj.id,
-			type: transobj.type,
-			filesUpload: req.files,
-			fileUrl: req.body.product_images || []
-		})
-		if(transobj.type === 'new'){ res.json({status:1,msg:'添加成功'}); }
-		else if(transobj.type === 'change'){ res.json({status:1,msg:'修改成功'}); }
-	}).catch((err)=>{ throw err; });
+	// let pdata = JSON.parse(JSON.stringify(req.body));
+	// delete pdata._id;
+	// new Promise((resolve,reject)=>{
+	// 	if(req.body._id !== 0 && req.body._id !== '0'){	// 修改
+	// 		Product.updateOne({_id: mongoose.Types.ObjectId(req.body._id)},pdata,(err,docs)=>{
+	// 			if(err){reject(err);}
+	// 			else{resolve({id:req.body._id,type:'change'});}
+	// 		});
+	// 	}else{	// 新增
+	// 		let newProduct = new Product(pdata);
+	// 		newProduct.save(function(err,docs){
+	// 			if(err){reject(err);}
+	// 			else{resolve({id:docs._id,type:'new'});}
+	// 		});
+	// 	}
+	// }).then((transobj)=>{
+	// 	saveFiles({
+	// 		pid: transobj.id,
+	// 		type: transobj.type,
+	// 		filesUpload: req.files,
+	// 		fileUrl: req.body.product_images || []
+	// 	})
+	// 	if(transobj.type === 'new'){ res.json({status:1,msg:'添加成功'}); }
+	// 	else if(transobj.type === 'change'){ res.json({status:1,msg:'修改成功'}); }
+	// }).catch((err)=>{ throw err; });
+});
+
+router.post('/uploadEditorImg',(req,res)=>{
+	upload_image(req,(err,data)=>{
+		if(err) return res.status(404).end(JSON.stringify(err));
+		
+		console.log(data);
+		console.log(data.link);
+		let tmp = data.link.split('/');
+		// tmp[2];
+		res.send(`${url.host}/${tmp[2]}`);
+		
+		// let reg = /\/([^\/])\/([^\/])/g;
+	});
 });
 
 function saveFiles(obj){
