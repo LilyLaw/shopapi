@@ -11,8 +11,9 @@ var storage = multer.diskStorage({
   filename: function (req, file, cb) { cb(null, file.originalname); }
 });
 var upload = multer({ storage: storage });
-
-var upload_image = require("../toolfunctions/upload.js");
+// 富文本编辑器上传图片
+var upload_image = require("../toolfunctions/imageupload.js");
+var upload_video = require("../toolfunctions/videoupload.js");
 
 // 获取产品列表
 router.post('/productlist',(req,res)=>{
@@ -89,6 +90,15 @@ router.post('/addproduct', upload.array('product_images', 12), function (req, re
 
 router.post('/uploadEditorImg',(req,res)=>{
 	upload_image(req,(err,data)=>{
+		if(err) return res.status(404).end(JSON.stringify(err));
+		let reg = /\/([\w]+)\/([0-9a-zA-Z\.]+)/g;
+		let m = reg.exec(data.link);
+		res.send({link:`${BasicConfig.sitehostname}/static/${m[2]}`});
+	});
+});
+
+router.post('/uploadEditorVideo',(req,res)=>{
+	upload_video(req,(err,data)=>{
 		if(err) return res.status(404).end(JSON.stringify(err));
 		let reg = /\/([\w]+)\/([0-9a-zA-Z\.]+)/g;
 		let m = reg.exec(data.link);
