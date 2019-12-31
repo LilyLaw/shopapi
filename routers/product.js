@@ -90,8 +90,9 @@ router.post('/addproduct', upload.array('product_images', 12), function (req, re
 router.post('/uploadEditorImg',(req,res)=>{
 	upload_image(req,(err,data)=>{
 		if(err) return res.status(404).end(JSON.stringify(err));
-		let tmp = data.link.split('/');
-		res.send({link:`${BasicConfig.sitehostname}/static/${tmp[2]}`});
+		let reg = /\/([\w]+)\/([0-9a-zA-Z\.]+)/g;
+		let m = reg.exec(data.link);
+		res.send({link:`${BasicConfig.sitehostname}/static/${m[2]}`});
 	});
 });
 
