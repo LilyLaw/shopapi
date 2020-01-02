@@ -29,6 +29,8 @@ router.post('/productlist',(req,res)=>{
 		Product.find(queryp).skip((cpage-1) * psize).limit(psize).exec((err,docs)=>{ // 2. 获取应渲染的那几个
 			if(err) throw err;
 			res.send({
+				status: 1,
+				msg: '已获取',
 				allcount: count,
 				products: docs
 			});
@@ -53,7 +55,11 @@ router.get('/product/:productid',(req,res)=>{
 			a.product_name = doc.product_name;
 			a.product_status = doc.product_status;
 			a.product_description = doc.product_description;
-			res.send(a);
+			res.send({
+				status: 1,
+				msg: "已获取",
+				pdata: a
+			});
 		});
 	}).catch((err)=>{ throw err; });
 });
@@ -91,20 +97,23 @@ router.post('/addproduct', upload.array('product_images', 12), function (req, re
 router.post('/uploadEditorImg',(req,res)=>{
 	upload_image(req,(err,data)=>{
 		if(err) return res.status(404).end(JSON.stringify(err));
-		let reg = /\/([\w]+)\/([0-9a-zA-Z\.]+)/g;
-		let m = reg.exec(data.link);
-		res.send({link:`${BasicConfig.sitehostname}/static/${m[2]}`});
+		let m = getfilename(data.link);
+		res.send({link:`${BasicConfig.sitehostname}/static/${m[2]}`,status:1,msg:"上传成功"});
 	});
 });
 
 router.post('/uploadEditorVideo',(req,res)=>{
 	upload_video(req,(err,data)=>{
 		if(err) return res.status(404).end(JSON.stringify(err));
-		let reg = /\/([\w]+)\/([0-9a-zA-Z\.]+)/g;
-		let m = reg.exec(data.link);
-		res.send({link:`${BasicConfig.sitehostname}/static/${m[2]}`});
+		let m = getfilename(data.link);
+		res.send({link:`${BasicConfig.sitehostname}/static/${m[2]}`,status:1,msg:"上传成功"});
 	});
 });
+
+function getfilename(link){
+	let reg = /\/([\w]+)\/([0-9a-zA-Z\.]+)/g;
+	return reg.exec(data.link);
+}
 
 function saveFiles(obj){
 	if(obj.type==='change'){ // 修改
