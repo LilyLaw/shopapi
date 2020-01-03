@@ -21,21 +21,21 @@ app.all('*', function(req, res, next) { // 允许跨域
 });
 app.use(bodyParser.urlencoded({ extended: false })); // 处理http解析
 app.use('/static',express.static(path.join(__dirname,'uploads'))); // 访问静态资源
+
 app.use(session({ // 使用 session 中间件
-    secret : 'secret', // 对session id 相关的cookie 进行签名
+    secret : 'sdkjlksdj5wewe3dfwe5rw6ersdf4s6d', // 对session id 相关的cookie 进行签名
     resave : true,
     saveUninitialized: false, // 是否保存未初始化的会话
     cookie : {
         maxAge : 1000 * 60 * 3, // 设置 session 的有效时间，单位毫秒
+				httpOnly: true
     },
 }));
 
 app.use(function(req,res,next){	// 检测登录,并对所有请求进行拦截
-	console.log(req.url==='/login');
 	if(req.url === '/login'){
 		next();
 	}else{
-		console.log(req.session);
 		if(req.session.username) next();
 		else res.send({status:0,msg:'您尚未登录'});
 	}
@@ -47,11 +47,11 @@ app.post('/login',(req,res)=>{
 		if(err) res.send({status:0,msg:'该用户不存在'});
 		if(data.length===1){
 			if(md5(req.body.password).toString() === data[0].password.toString()){ 	// 判断数据库中用户名密码是否正确
-				req.session.username = req.body.username;
+				req.session.username = req.sessionID
+				res.cookie('username',req.sessionID,{httpOnly:true,maxAge:3*60*1000});
+				
 				res.send({status:1,msg:'登录成功!'});
-			}else{
-				res.send({status:2,msg:'密码错误!'});
-			}
+			}else{ res.send({status:2,msg:'密码错误!'}); }
 		}else{ res.send({status:0,msg:'该用户不存在'}); }
 	});
 });
