@@ -7,32 +7,31 @@ let productrouter = require('./routers/product.js');
 let orderrouter = require('./routers/order.js');
 let User = require('./database/user.js');
 let md5 = require('md5');
-
-mongoose.connect('mongodb://localhost/shop',{useNewUrlParser: true,useUnifiedTopology: true}); // 连接mongoDB 数据库
 const apiPort = 3001; // 监听端口
+mongoose.connect('mongodb://localhost/shop',{useNewUrlParser: true,useUnifiedTopology: true}); // 连接mongoDB 数据库
 let app = new express(); // 实例化一个服务
+
+app.use(session({
+    secret: "keyboard cat",
+		resave: false,
+		saveUninitialized: true,
+		cookie: ('name', 'value',{maxAge:  5*60*1000,secure: false})
+}));
+
 app.all('*', function(req, res, next) { // 允许跨域
-   res.header("Access-Control-Allow-Origin", "*");
+   res.header("Access-Control-Allow-Origin", "http://localhost:8080");
    res.header("Access-Control-Allow-Headers", "X-Requested-With");
    res.header("Access-Control-Allow-Methods","PUT,POST,GET,DELETE,OPTIONS");
    res.header("X-Powered-By",' 3.2.1');
+	 res.header('Access-Control-Allow-Credentials', "true");
    // res.header("Content-Type", "application/json;charset=utf-8");
    next();
 });
+
 app.use(bodyParser.urlencoded({ extended: false })); // 处理http解析
 app.use('/static',express.static(path.join(__dirname,'uploads'))); // 访问静态资源
-
-app.use(session({ // 使用 session 中间件
-    secret : 'sdkjlksdj5wewe3dfwe5rw6ersdf4s6d', // 对session id 相关的cookie 进行签名
-    resave : true,
-    saveUninitialized: false, // 是否保存未初始化的会话
-    cookie : {
-        maxAge : 1000 * 60 * 3, // 设置 session 的有效时间，单位毫秒
-				httpOnly: true
-    },
-}));
-
 app.use(function(req,res,next){	// 检测登录,并对所有请求进行拦截
+	console.log(req.session);
 	if(req.url === '/login'){
 		next();
 	}else{
@@ -47,8 +46,7 @@ app.post('/login',(req,res)=>{
 		if(err) res.send({status:0,msg:'该用户不存在'});
 		if(data.length===1){
 			if(md5(req.body.password).toString() === data[0].password.toString()){ 	// 判断数据库中用户名密码是否正确
-				req.session.username = req.sessionID
-				res.cookie('username',req.sessionID,{httpOnly:true,maxAge:3*60*1000});
+				req.session.username = req.body.username;
 				
 				res.send({status:1,msg:'登录成功!'});
 			}else{ res.send({status:2,msg:'密码错误!'}); }
